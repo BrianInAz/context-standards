@@ -4,16 +4,23 @@ Unified AI agent context management for all development environments. Single sou
 
 ## Quick Setup
 
-### Global Context (Home Directory)
+**Global Setup (run once):**
 ```bash
-export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh)
+cd ~ && bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh)
 ```
 
-### Project Context
+**Project Setup (run in each project):**
 ```bash
-mkdir my-project && cd my-project
-bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh)
+cd ~/your-project && bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh)
+```
+
+**Help and Options:**
+```bash
+# View all available options
+bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh) --help
+
+# Clean removal if needed
+bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh) --uninstall
 ```
 
 ## How It Works
