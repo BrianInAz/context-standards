@@ -22,9 +22,9 @@ if [ "$(pwd)" = "$HOME" ]; then
     echo "🏠 Setting up global context..."
     rm -rf ~/.claude ~/.gemini ~/.windsurf ~/.bjzy 2>/dev/null || true
     git clone https://github.com/BrianInAz/context-standards.git ~/.bjzy
-    ln -sf ~/.bjzy ~/.claude
-    ln -sf ~/.bjzy ~/.gemini
-    ln -sf ~/.bjzy ~/.windsurf
+    ln -sfn ~/.bjzy ~/.claude
+    ln -sfn ~/.bjzy ~/.gemini
+    ln -sfn ~/.bjzy ~/.windsurf
     cd ~/.bjzy && ln -sf AGENTS.md CLAUDE.md GEMINI.md
     
     echo "✅ Global context ready at ~/.bjzy/"
