@@ -33,7 +33,36 @@ if [ "$(pwd)" = "$HOME" ]; then
     
 else
     echo "📁 Setting up project context..."
-    curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md
+    
+    # Smart AGENTS.md handling
+    if [ -f "AGENTS.md" ]; then
+        echo "🔄 Existing AGENTS.md found - performing intelligent merge..."
+        
+        # Backup existing file
+        cp AGENTS.md AGENTS.md.backup
+        
+        # Download latest template
+        curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md.new
+        
+        # Simple merge strategy: preserve existing if it has project-specific content
+        # Check if existing file has been customized (more than template + few lines)
+        EXISTING_LINES=$(wc -l < AGENTS.md)
+        TEMPLATE_LINES=$(wc -l < AGENTS.md.new)
+        
+        if [ "$EXISTING_LINES" -gt $((TEMPLATE_LINES + 5)) ]; then
+            echo "🎯 Preserving customized AGENTS.md (${EXISTING_LINES} lines vs ${TEMPLATE_LINES} template)"
+            rm AGENTS.md.new
+            echo "💾 Backed up to AGENTS.md.backup"
+            echo "📝 Template saved for reference - run 'curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md.template' to see latest"
+        else
+            echo "🔄 Updating to latest template (minimal customization detected)"
+            mv AGENTS.md.new AGENTS.md
+            echo "💾 Previous version saved as AGENTS.md.backup"
+        fi
+    else
+        echo "📥 Downloading AGENTS.md template..."
+        curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md
+    fi
     
     mkdir -p .claude .gemini .roo
     ln -sf ../AGENTS.md .claude/CLAUDE.md
