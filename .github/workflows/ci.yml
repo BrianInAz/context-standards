@@ -1,0 +1,343 @@
+# AI Context Standards CI/CD Pipeline
+#
+# Comprehensive testing and validation pipeline for the unified AI context setup
+# Based on BjzyLabs/ansible patterns, adapted for context management workflow
+#
+name: AI Context Standards CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+# Cancel previous runs if a new push/PR is made
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job 1: Code Quality and Standards Validation
+  code-quality:
+    name: Code Quality & Standards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Install Node.js for markdownlint
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Run shellcheck on setup script
+        run: |
+          echo "Running shellcheck on setup-ai-context.sh..."
+          shellcheck setup-ai-context.sh -f gcc
+
+      - name: Run markdownlint on documentation
+        run: |
+          echo "Running markdownlint on documentation files..."
+          markdownlint README.md AGENTS.md || true
+
+      - name: Check script permissions
+        run: |
+          echo "Checking script permissions..."
+          if [[ -x "setup-ai-context.sh" ]]; then
+            echo "✅ setup-ai-context.sh is executable"
+          else
+            echo "❌ setup-ai-context.sh is not executable"
+            exit 1
+          fi
+
+  # Job 2: Security & Documentation Validation  
+  security-and-docs:
+    name: Security & Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded URLs and secrets
+        run: |
+          echo "Scanning for potential hardcoded secrets or URLs..."
+          
+          # Check for any hardcoded GitHub URLs that should be variables
+          if grep -n "github.com.*BrianInAz" setup-ai-context.sh | grep -v "# " | head -5; then
+            echo "✅ Found expected GitHub repository URLs"
+          fi
+          
+          # Check for any webhook URLs or tokens
+          if grep -n -i "hook\|token\|secret" setup-ai-context.sh | grep -v "SLACK_WEBHOOK_URL" | grep -v "# " | head -5; then
+            echo "⚠️ Found potential secrets. Review for hardcoded values."
+          else
+            echo "✅ No hardcoded secrets found"
+          fi
+
+      - name: Validate AGENTS.md structure
+        run: |
+          echo "Validating AGENTS.md structure and content..."
+          
+          if [[ -f "AGENTS.md" ]]; then
+            echo "✅ AGENTS.md exists"
+            
+            # Check for key sections
+            if grep -q "## DevOps Integration" AGENTS.md; then
+              echo "✅ DevOps Integration section found"
+            else
+              echo "⚠️ Missing DevOps Integration section"
+            fi
+            
+            if grep -q "AI Context Resolution Hierarchy" AGENTS.md; then
+              echo "✅ Context hierarchy documentation found"
+            else
+              echo "⚠️ Missing context hierarchy documentation"
+            fi
+          else
+            echo "❌ AGENTS.md not found"
+            exit 1
+          fi
+
+      - name: Check documentation consistency
+        run: |
+          echo "Verifying setup script matches documentation..."
+          
+          # Check that README examples match actual script usage
+          if grep -q "\-\-help" README.md && grep -q "\-\-help" setup-ai-context.sh; then
+            echo "✅ Help flag documented and implemented"
+          else
+            echo "⚠️ Help flag mismatch between docs and script"
+          fi
+          
+          if grep -q "\-\-uninstall" README.md && grep -q "\-\-uninstall" setup-ai-context.sh; then
+            echo "✅ Uninstall option documented and implemented"
+          else
+            echo "⚠️ Uninstall option mismatch between docs and script"
+          fi
+
+  # Job 3: Script Functionality Testing
+  test-script-functionality:
+    name: Setup Script Testing
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-and-docs]
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type: [help, uninstall, project-setup]
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test --help flag
+        if: matrix.test-type == 'help'
+        run: |
+          echo "Testing --help functionality..."
+          bash setup-ai-context.sh --help
+          
+          # Verify help output contains expected sections
+          if bash setup-ai-context.sh --help | grep -q "USAGE:"; then
+            echo "✅ Help shows usage section"
+          else
+            echo "❌ Help missing usage section"
+            exit 1
+          fi
+
+      - name: Test --uninstall functionality  
+        if: matrix.test-type == 'uninstall'
+        run: |
+          echo "Testing --uninstall functionality..."
+          
+          # Create some fake files to test cleanup
+          mkdir -p /tmp/test-uninstall
+          cd /tmp/test-uninstall
+          
+          # Create fake setup
+          touch AGENTS.md .cursorrules
+          mkdir -p .claude .gemini .roo
+          
+          # Test uninstall
+          bash $GITHUB_WORKSPACE/setup-ai-context.sh --uninstall
+          
+          # Verify cleanup
+          if [[ ! -f "AGENTS.md" ]] && [[ ! -d ".claude" ]]; then
+            echo "✅ Uninstall cleaned up project files"
+          else
+            echo "❌ Uninstall failed to clean up files"
+            exit 1
+          fi
+
+      - name: Test project setup functionality
+        if: matrix.test-type == 'project-setup'
+        run: |
+          echo "Testing project setup functionality..."
+          
+          # Test in a clean directory
+          mkdir -p /tmp/test-project
+          cd /tmp/test-project
+          
+          # Run setup
+          bash $GITHUB_workspace/setup-ai-context.sh
+          
+          # Verify files were created
+          if [[ -f "AGENTS.md" ]] && [[ -L ".cursorrules" ]] && [[ -d ".claude" ]]; then
+            echo "✅ Project setup created expected files and directories"
+          else
+            echo "❌ Project setup failed to create required files"
+            ls -la
+            exit 1
+          fi
+          
+          # Verify symlinks work
+          if [[ -L ".claude/CLAUDE.md" ]] && [[ -e ".claude/CLAUDE.md" ]]; then
+            echo "✅ Claude symlink created and functional"
+          else
+            echo "❌ Claude symlink not working"
+            ls -la .claude/
+            exit 1
+          fi
+
+  # Job 4: Integration Testing
+  integration-test:
+    name: Full Integration Test
+    runs-on: ubuntu-latest
+    needs: [test-script-functionality]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test complete workflow
+        run: |
+          echo "Running complete integration test..."
+          
+          # Test 1: Project setup in clean environment
+          mkdir -p /tmp/integration-test
+          cd /tmp/integration-test
+          
+          echo "=== Testing initial project setup ==="
+          bash $GITHUB_WORKSPACE/setup-ai-context.sh
+          
+          # Verify all expected files and symlinks
+          for file in AGENTS.md .cursorrules; do
+            if [[ -e "$file" ]]; then
+              echo "✅ $file created"
+            else
+              echo "❌ $file missing"
+              exit 1
+            fi
+          done
+          
+          for dir in .claude .gemini .roo; do
+            if [[ -d "$dir" ]] && [[ -L "$dir/$(basename $dir | tr '[:lower:]' '[:upper:]').md" || -L "$dir/roo.md" ]]; then
+              echo "✅ $dir directory and symlink created"
+            else
+              echo "❌ $dir setup incomplete"
+              ls -la $dir/ || echo "$dir missing"
+              exit 1
+            fi
+          done
+          
+          # Test 2: Re-running setup (should handle existing files)
+          echo "=== Testing setup with existing files ==="
+          echo "# Custom project context" >> AGENTS.md
+          bash $GITHUB_WORKSPACE/setup-ai-context.sh
+          
+          if [[ -f "AGENTS.md.backup" ]]; then
+            echo "✅ Backup created for existing AGENTS.md"
+          else
+            echo "⚠️ No backup created (may be expected if files identical)"
+          fi
+          
+          # Test 3: Cleanup
+          echo "=== Testing cleanup ==="
+          bash $GITHUB_WORKSPACE/setup-ai-context.sh --uninstall
+          
+          # Verify cleanup
+          remaining_files=$(find . -name "AGENTS.md" -o -name ".cursorrules" -o -name ".claude" -o -name ".gemini" -o -name ".roo" | wc -l)
+          if [[ "$remaining_files" -eq 0 ]]; then
+            echo "✅ Complete cleanup successful"
+          else
+            echo "❌ Cleanup incomplete, $remaining_files files/dirs remaining"
+            find . -name "AGENTS.md" -o -name ".cursorrules" -o -name ".claude" -o -name ".gemini" -o -name ".roo"
+            exit 1
+          fi
+
+  # Job 5: CI/CD Pipeline Results Summary
+  test-summary:
+    name: Pipeline Results Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-and-docs, test-script-functionality, integration-test]
+    if: always()
+
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "# 🧪 AI Context Standards Testing Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Code Quality job status
+          if [[ "${{ needs.code-quality.result }}" == "success" ]]; then
+            echo "✅ **Code Quality**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Code Quality**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Security & Documentation job status
+          if [[ "${{ needs.security-and-docs.result }}" == "success" ]]; then
+            echo "✅ **Security & Documentation**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Security & Documentation**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Script functionality tests status
+          if [[ "${{ needs.test-script-functionality.result }}" == "success" ]]; then
+            echo "✅ **Script Functionality**: All Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Script Functionality**: Some Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Integration test status
+          if [[ "${{ needs.integration-test.result }}" == "success" ]]; then
+            echo "✅ **Integration Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.integration-test.result }}" == "failure" ]]; then
+            echo "❌ **Integration Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Integration Tests**: ${{ needs.integration-test.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Quick Stats" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow**: \`${{ github.workflow }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Set final workflow status
+        run: |
+          if [[ "${{ needs.code-quality.result }}" != "success" ]] ||
+             [[ "${{ needs.test-script-functionality.result }}" == "failure" ]] ||
+             [[ "${{ needs.integration-test.result }}" == "failure" ]]; then
+            echo "❌ Some tests failed - check the job details above"
+            exit 1
+          else
+            echo "✅ All tests passed successfully!"
+            exit 0
+          fi
