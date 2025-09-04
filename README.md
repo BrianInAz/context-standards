@@ -67,6 +67,38 @@ my-project/
 2. **New Project**: Run project setup in project directory
 3. **Customize**: Edit `AGENTS.md` for project-specific requirements
 
+### Project Context Management
+
+#### Changing Project Context
+Once project setup is complete, customize the context:
+
+```bash
+cd ~/your-project
+vim AGENTS.md  # Edit project-specific context
+# Changes take effect immediately for all AI agents in this project
+```
+
+#### Project Context Guidelines
+- **Local changes only**: Project `AGENTS.md` files are independent of the global repository
+- **No git tracking**: Add to `.gitignore` unless context should be shared with team:
+  ```gitignore
+  AGENTS.md
+  .claude/
+  .gemini/
+  .roo/
+  .cursorrules
+  ```
+- **Team sharing**: If team needs shared context, commit `AGENTS.md` to project repository
+- **Testing changes**: AI agents read directly from `./AGENTS.md` - changes are immediate
+
+#### Reset Project Context
+To revert to global standards:
+```bash
+rm AGENTS.md .cursorrules
+rm -rf .claude .gemini .roo
+bash <(curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/setup-ai-context.sh)
+```
+
 ### Slack Notifications
 Setup sends notifications to `#monitoring` channel:
 - `✅ AI Context: Global setup completed on hostname by user`
