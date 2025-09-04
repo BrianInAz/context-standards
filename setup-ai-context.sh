@@ -36,28 +36,41 @@ else
     
     # Smart AGENTS.md handling
     if [ -f "AGENTS.md" ]; then
-        echo "🔄 Existing AGENTS.md found - performing intelligent merge..."
+        echo "🔍 Existing AGENTS.md found - checking for differences..."
         
-        # Backup existing file
-        cp AGENTS.md AGENTS.md.backup
-        
-        # Download latest template
+        # Download latest template for comparison
         curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md.new
         
-        # Simple merge strategy: preserve existing if it has project-specific content
-        # Check if existing file has been customized (more than template + few lines)
-        EXISTING_LINES=$(wc -l < AGENTS.md)
-        TEMPLATE_LINES=$(wc -l < AGENTS.md.new)
-        
-        if [ "$EXISTING_LINES" -gt $((TEMPLATE_LINES + 5)) ]; then
-            echo "🎯 Preserving customized AGENTS.md (${EXISTING_LINES} lines vs ${TEMPLATE_LINES} template)"
-            rm AGENTS.md.new
-            echo "💾 Backed up to AGENTS.md.backup"
-            echo "📝 Template saved for reference - run 'curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md.template' to see latest"
-        else
-            echo "🔄 Updating to latest template (minimal customization detected)"
+        # Check if files are different
+        if ! diff -q AGENTS.md AGENTS.md.new > /dev/null 2>&1; then
+            echo ""
+            echo "⚠️  \033[1;33mIMPORTANT: Your AGENTS.md differs from the latest template!\033[0m"
+            echo ""
+            
+            # Backup existing file
+            cp AGENTS.md AGENTS.md.backup
+            echo "💾 \033[1;32mBacked up your version to AGENTS.md.backup\033[0m"
+            echo ""
+            
+            # Show the diff
+            echo "📊 \033[1;34mHere's what changed:\033[0m"
+            echo "\033[0;36m--- Your current AGENTS.md"
+            echo "+++ Latest template\033[0m"
+            diff -u AGENTS.md AGENTS.md.new || true
+            echo ""
+            
+            # Update to new template
             mv AGENTS.md.new AGENTS.md
-            echo "💾 Previous version saved as AGENTS.md.backup"
+            echo "🔄 \033[1;32mUpdated to latest template\033[0m"
+            echo ""
+            echo "🛠️  \033[1;33mNext Steps:\033[0m"
+            echo "   1. Review the diff above"
+            echo "   2. Edit AGENTS.md to add back your customizations"
+            echo "   3. Compare with backup: \033[0;32mdiff AGENTS.md.backup AGENTS.md\033[0m"
+            echo ""
+        else
+            echo "✅ Your AGENTS.md matches the latest template - no changes needed"
+            rm AGENTS.md.new
         fi
     else
         echo "📥 Downloading AGENTS.md template..."
