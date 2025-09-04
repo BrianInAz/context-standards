@@ -1,0 +1,42 @@
+{
+  "folders": [
+    {
+      "name": "📜 Context: Claude",
+      "path": "claude-standards"
+    },
+    {
+      "name": "📜 Context: Gemini",
+      "path": "gemini-standards"
+    },
+    {
+      "name": "⚙️ Config: Dotfiles",
+      "path": "dotfiles"
+    }
+  ],
+  "settings": {
+    // Exclude common clutter from the file explorer
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/*.pyc": true,
+      "**/__pycache__": true
+    },
+    // Keep search results clean
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/bower_components": true,
+      "**/*.code-search": true
+    },
+    // Ensures all markdown files use consistent formatting
+    "[markdown]": {
+      "editor.wordWrap": "on",
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  },
+  "recommendations": [
+    "eamodio.gitlens",
+    "DavidAnson.vscode-markdownlint",
+    "streetsidesoftware.code-spell-checker",
+    "esbenp.prettier-vscode"
+  ]
+}
