@@ -40,21 +40,35 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
           direct_prompt: |
-            Please review this AI Context Standards pull request focusing on:
+            Please review this AI Context Standards pull request with branch-specific focus:
 
             SCOPE: Only review files that are actually modified in this specific PR.
             Do not suggest changes to unmodified existing code or include analysis
             of files not changed in this pull request.
 
-            FOCUS AREAS:
+            BRANCH-SPECIFIC FOCUS:
+            ${{ github.base_ref == 'develop' && '
+            **DEVELOPMENT INTEGRATION REVIEW:**
+            - Code quality and maintainability
             - Shell script best practices and error handling
-            - Cross-platform compatibility (macOS, Linux)
+            - Cross-platform compatibility (macOS, Linux)  
             - Security concerns around file operations and network requests
-            - User experience and clear error messaging
-            - Documentation accuracy and completeness
-            - Symlink handling and validation
             - Integration with existing AI agent workflows
-            - Backward compatibility with existing setups
+            - Testing coverage and validation approaches
+            - Developer experience and debugging capabilities' || '
+            **PRODUCTION READINESS REVIEW:**
+            - Production deployment safety and reliability
+            - Backward compatibility with existing user setups
+            - Documentation completeness for end users
+            - Error handling for edge cases in production
+            - Performance and resource usage considerations
+            - Monitoring and observability (Slack notifications)
+            - Release process and versioning concerns' }}
+
+            GENERAL AREAS:
+            - User experience and clear error messaging
+            - Symlink handling and validation
+            - Documentation accuracy and completeness
 
             CONTEXT:
             This is a unified AI context management system that:
@@ -64,4 +78,4 @@ jobs:
             - Includes Slack notifications for monitoring
             - Must work reliably across different environments
 
-            Be constructive, helpful, and focus on robustness and user experience.
+            Be constructive, helpful, and provide branch-appropriate feedback.
