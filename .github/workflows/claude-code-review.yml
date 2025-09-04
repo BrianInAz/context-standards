@@ -1,0 +1,81 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened]
+    paths:
+      - "setup-ai-context.sh"
+      - "AGENTS.md"
+      - "README.md"
+      - "*.md"
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude-review:
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          direct_prompt: |
+            Please review this AI Context Standards pull request with branch-specific focus:
+
+            SCOPE: Only review files that are actually modified in this specific PR.
+            Do not suggest changes to unmodified existing code or include analysis
+            of files not changed in this pull request.
+
+            BRANCH-SPECIFIC FOCUS:
+            ${{ github.base_ref == 'develop' && '
+            **DEVELOPMENT INTEGRATION REVIEW:**
+            - Code quality and maintainability
+            - Shell script best practices and error handling
+            - Cross-platform compatibility (macOS, Linux)  
+            - Security concerns around file operations and network requests
+            - Integration with existing AI agent workflows
+            - Testing coverage and validation approaches
+            - Developer experience and debugging capabilities' || '
+            **PRODUCTION READINESS REVIEW:**
+            - Production deployment safety and reliability
+            - Backward compatibility with existing user setups
+            - Documentation completeness for end users
+            - Error handling for edge cases in production
+            - Performance and resource usage considerations
+            - Monitoring and observability (Slack notifications)
+            - Release process and versioning concerns' }}
+
+            GENERAL AREAS:
+            - User experience and clear error messaging
+            - Symlink handling and validation
+            - Documentation accuracy and completeness
+
+            CONTEXT:
+            This is a unified AI context management system that:
+            - Consolidates separate agent contexts (Claude, Gemini, etc.) into AGENTS.md
+            - Supports both global (~/.bjzy) and project-specific setups
+            - Uses symlinks for backward compatibility
+            - Includes Slack notifications for monitoring
+            - Must work reliably across different environments
+
+            Be constructive, helpful, and provide branch-appropriate feedback.
