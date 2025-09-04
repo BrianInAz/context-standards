@@ -155,6 +155,56 @@ ln -sf AGENTS.md GEMINI.md
 2. **Check symlinks:** `ls -la ~/.claude/CLAUDE.md` 
 3. **Check project override:** `ls -la ./AGENTS.md`
 
+## Context Update Workflow
+
+### Critical Architecture Note
+**`~/.bjzy/` is live production infrastructure** - all AI agents read context from here via symlinks:
+- `~/.claude/CLAUDE.md` → `~/.bjzy/AGENTS.md`
+- `~/.gemini/GEMINI.md` → `~/.bjzy/AGENTS.md`
+- `~/.windsurf/AGENTS.md` → `~/.bjzy/AGENTS.md`
+
+**Any change to `~/.bjzy/AGENTS.md` immediately affects all AI interactions.**
+
+### Recommended Workflows
+
+#### Quick Personal Fixes
+For typos, small additions to your personal context:
+```bash
+cd ~/.bjzy
+# Edit AGENTS.md directly
+git add . && git commit -m "Fix typo in security guidelines"
+git push
+```
+
+#### Substantial Changes
+For significant updates, new patterns, or anything that might break AI behavior:
+```bash
+# Work in separate clone to avoid disrupting live context
+cd ~/tmp
+git clone https://github.com/BrianInAz/context-standards.git context-work
+cd context-work
+git checkout -b feature/improve-testing-standards
+
+# Make changes, test with AI agents
+vim AGENTS.md
+git add . && git commit -m "Add comprehensive testing patterns"
+git push -u origin feature/improve-testing-standards
+
+# Create PR via GitHub, review, merge
+# Then sync live context:
+cd ~/.bjzy && git pull origin main
+```
+
+#### Team Environments
+Always use feature branches and PR workflow:
+```bash
+cd ~/.bjzy
+git checkout -b feature/team-standards-update
+# Make changes
+git push -u origin feature/team-standards-update
+# PR → Review → Merge → git pull
+```
+
 ## Contributing
 
 1. **Fork this repository**
