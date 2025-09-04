@@ -26,7 +26,7 @@ if [ "$(pwd)" = "$HOME" ]; then
     ln -sfn ~/.bjzy ~/.claude
     ln -sfn ~/.bjzy ~/.gemini
     ln -sfn ~/.bjzy ~/.windsurf
-    cd ~/.bjzy && ln -sf AGENTS.md CLAUDE.md GEMINI.md
+    cd ~/.bjzy && ln -sf AGENTS.md CLAUDE.md && ln -sf AGENTS.md GEMINI.md
     
     echo "✅ Global context ready at ~/.bjzy/"
     send_slack_notification "✅ AI Context: Global setup completed on \`$HOSTNAME\` by \`$USER\` at $TIMESTAMP"
@@ -36,7 +36,9 @@ else
     curl -s https://raw.githubusercontent.com/BrianInAz/context-standards/main/AGENTS.md > AGENTS.md
     
     mkdir -p .claude .gemini .roo
-    ln -sf ../AGENTS.md .claude/CLAUDE.md .gemini/GEMINI.md .roo/roo.md
+    ln -sf ../AGENTS.md .claude/CLAUDE.md
+    ln -sf ../AGENTS.md .gemini/GEMINI.md  
+    ln -sf ../AGENTS.md .roo/roo.md
     ln -sf AGENTS.md .cursorrules
     
     PROJECT_PATH=$(pwd)
