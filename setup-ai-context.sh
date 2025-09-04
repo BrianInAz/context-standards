@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# AI Context Setup Script - v1.1
 # Slack notification function
 send_slack_notification() {
     local message="$1"
